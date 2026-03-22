@@ -1,1061 +1,693 @@
-# WMS — Sistema de Gestión de Almacén
+# Harmony WMS
 
-> **Warehouse Management System** full-stack para la gestión integral de ventas, alistamiento, empaque, inventario y facturación. Desarrollado con Node.js/Express/PostgreSQL en el backend y React/Vite/TailwindCSS en el frontend.
+> **Warehouse Management System con incentivos Web3 sobre Stellar/Soroban.**
+> Gestión integral de ventas, alistamiento, empaque, inventario y facturación — con un sistema de recompensas on-chain para operarios financiado en USDC, yield automático vía Blend Protocol y cash-out a cuenta bancaria vía Etherfuse.
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Backend-Node.js%2FExpress-339933?logo=node.js&logoColor=white" />
+  <img src="https://img.shields.io/badge/Frontend-React%2019-61DAFB?logo=react&logoColor=black" />
+  <img src="https://img.shields.io/badge/Database-PostgreSQL%2014+-4169E1?logo=postgresql&logoColor=white" />
+  <img src="https://img.shields.io/badge/Blockchain-Stellar%2FSoroban-7C3AED?logo=stellar&logoColor=white" />
+  <img src="https://img.shields.io/badge/DeFi-Blend%20Protocol-06B6D4" />
+  <img src="https://img.shields.io/badge/Fiat-Etherfuse-F59E0B" />
+  <img src="https://img.shields.io/badge/Deploy-Azure-0078D4?logo=microsoftazure&logoColor=white" />
+</p>
 
 ---
 
 ## Tabla de Contenidos
 
-1. [Descripción General](#descripción-general)
-2. [Tecnologías](#tecnologías)
-3. [Arquitectura del Sistema](#arquitectura-del-sistema)
+1. [Descripcion General](#descripcion-general)
+2. [Arquitectura del Sistema](#arquitectura-del-sistema)
+3. [Stack Tecnologico](#stack-tecnologico)
 4. [Estructura del Proyecto](#estructura-del-proyecto)
-5. [Base de Datos](#base-de-datos)
-6. [Flujo de Órdenes](#flujo-de-órdenes)
-7. [Roles y Permisos](#roles-y-permisos)
-8. [Módulos del Sistema](#módulos-del-sistema)
-9. [API REST — Referencia Completa](#api-rest--referencia-completa)
-10. [Frontend — Páginas y Componentes](#frontend--páginas-y-componentes)
-11. [Optimización de Rutas de Picking](#optimización-de-rutas-de-picking)
-12. [Sistema de Inventario](#sistema-de-inventario)
-13. [Configuración y Despliegue](#configuración-y-despliegue)
-14. [Variables de Entorno](#variables-de-entorno)
-15. [Guía de Inicio Rápido](#guía-de-inicio-rápido)
+5. [Modulo WMS — Gestion de Almacen](#modulo-wms--gestion-de-almacen)
+6. [Modulo Harmony — Incentivos Web3](#modulo-harmony--incentivos-web3)
+7. [Smart Contracts (Soroban/Rust)](#smart-contracts-sorobanrust)
+8. [Blend Protocol — Yield Automatico](#blend-protocol--yield-automatico)
+9. [Etherfuse — Cash-Out a Cuenta Bancaria](#etherfuse--cash-out-a-cuenta-bancaria)
+10. [Base de Datos](#base-de-datos)
+11. [API REST](#api-rest)
+12. [Roles y Permisos (RBAC)](#roles-y-permisos-rbac)
+13. [Seguridad](#seguridad)
+14. [Guia de Inicio Rapido](#guia-de-inicio-rapido)
+15. [Variables de Entorno](#variables-de-entorno)
 16. [Despliegue en Azure](#despliegue-en-azure)
+17. [Datos de Prueba](#datos-de-prueba)
+18. [Verificacion On-Chain](#verificacion-on-chain)
 
 ---
 
-## Descripción General
+## Descripcion General
 
-El **WMS (Warehouse Management System)** es una aplicación empresarial diseñada para digitalizar y optimizar todas las operaciones de un almacén o bodega. Cubre el ciclo de vida completo de una orden de venta: desde su creación por el equipo comercial, pasando por la aprobación del jefe de bodega, el alistamiento físico de productos, el empaque, hasta la facturación final.
+**Harmony WMS** es una plataforma empresarial que combina un sistema de gestion de almacen completo (WMS) con un modulo de incentivos basado en blockchain (Harmony). La idea central: los operarios de bodega ganan recompensas en USDC por su desempeno, distribuidas de forma transparente a traves de smart contracts en Stellar.
 
-### Características Principales
+### Que problema resuelve
 
-- **Gestión de Órdenes de Venta** con flujo de aprobación multi-etapa
+| Problema | Solucion Harmony |
+|----------|-----------------|
+| Operarios sin motivacion por falta de incentivos claros | Sistema de puntos + recompensas USDC proporcionales al desempeno |
+| Fondos de incentivos idle (sin producir) durante semanas | Auto-deposit en Blend Protocol genera yield ~5-7% APY |
+| Dificultad para que operarios accedan a cripto | Etherfuse convierte USDC a moneda local y deposita en cuenta bancaria |
+| Falta de transparencia en distribucion de bonos | Todo queda registrado on-chain en Stellar, verificable publicamente |
+| Sistemas WMS desconectados de incentivos | Plataforma unificada: misma app para gestion de bodega y recompensas |
+
+### Caracteristicas Principales
+
+- **Gestion de Ordenes** con flujo multi-etapa (8 estados)
 - **Picking optimizado** por ruta de bodega para minimizar desplazamientos
-- **Control de inventario** por ubicación física (estantería/fila/nivel)
-- **Reserva de stock** automática al aprobar órdenes
-- **Reportes de averías** con evidencia fotográfica
-- **Recepciones de mercancía** con asignación a ubicaciones
-- **Métricas de desempeño** por operario y equipo
-- **Facturación** integrada al flujo de pedidos
-- **Zona horaria Colombia** (UTC-5) configurada a nivel de base de datos
-- **Despliegue en Azure** con soporte para Static Web Apps y App Service
-
----
-
-## Tecnologías
-
-### Backend
-| Tecnología | Versión | Uso |
-|---|---|---|
-| Node.js | 18+ | Runtime del servidor |
-| Express | 4.x | Framework HTTP |
-| PostgreSQL | 14+ | Base de datos relacional |
-| node-postgres (pg) | 8.x | Driver PostgreSQL |
-| JSON Web Token (JWT) | 9.x | Autenticación |
-| bcrypt | 5.x | Hashing de contraseñas |
-| Multer | 1.x | Manejo de subida de archivos |
-| Morgan | 1.x | Logging de peticiones HTTP |
-| dotenv | 16.x | Variables de entorno |
-
-### Frontend
-| Tecnología | Versión | Uso |
-|---|---|---|
-| React | 19.x | Framework UI |
-| Vite | 6.x | Build tool y dev server |
-| Zustand | 5.x | Manejo de estado global |
-| Axios | 1.x | Cliente HTTP |
-| TailwindCSS | 3.x | Estilos utilitarios |
-| React Router | 7.x | Enrutamiento SPA |
-| Lucide React | — | Iconografía |
+- **Control de inventario** por ubicacion fisica (estanteria/fila/nivel)
+- **Reserva de stock** automatica al aprobar ordenes
+- **Reportes de averias** con evidencia fotografica
+- **Recepciones de mercancia** con asignacion a ubicaciones
+- **Metricas de desempeno** por operario y equipo (KPIs)
+- **Facturacion** integrada al flujo de pedidos
+- **Incentivos on-chain** con smart contracts Soroban
+- **Yield automatico** via Blend Protocol sobre fondos idle
+- **Cash-out fiat** via Etherfuse (USDC a cuenta bancaria)
 
 ---
 
 ## Arquitectura del Sistema
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENTE (Browser)                        │
-│                                                                  │
-│   React 19 + Vite + TailwindCSS + Zustand + React Router       │
-│   ┌────────────────────────────────────────────────────────┐   │
-│   │  Páginas: Dashboard, Órdenes, Picking, Empaque,        │   │
-│   │  Inventario, Averías, Facturación, Desempeño...        │   │
-│   └────────────────────┬───────────────────────────────────┘   │
-└────────────────────────┼────────────────────────────────────────┘
-                         │ HTTP / REST API (Axios + JWT)
-                         ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                     BACKEND (Node.js / Express)                  │
-│                                                                  │
-│  ┌──────────┐  ┌──────────────┐  ┌──────────────────────────┐  │
-│  │  Routes  │→ │ Controllers  │→ │         Models           │  │
-│  │ /api/*   │  │ (lógica de   │  │  (consultas PostgreSQL)  │  │
-│  └──────────┘  │  negocio)    │  └──────────────────────────┘  │
-│                └──────────────┘                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Middlewares: auth.js · errorHandler.js · upload.js     │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Utils: picking-routes.js (optimización de rutas)       │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────┬───────────────────────────────┘
-                                  │ pg Pool (max 20 conexiones)
-                                  ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    PostgreSQL (wms_db)                           │
-│                                                                  │
-│  13 tablas · Índices · Triggers · Timezone: America/Bogota      │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENTE (Browser)                                  │
+│                                                                              │
+│  React 19 + Vite + TailwindCSS + Zustand + React Router + Freighter Wallet  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐ │
+│  │  WMS: Dashboard, Ordenes, Picking, Empaque, Inventario, Facturacion    │ │
+│  │  Harmony: Actividades, Metricas, Trabajadores, Fondo, Live, Config    │ │
+│  └──────────────────────────────────┬──────────────────────────────────────┘ │
+└─────────────────────────────────────┼────────────────────────────────────────┘
+                                      │ HTTP / REST API (Axios + JWT)
+                                      ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                      BACKEND (Node.js / Express)                             │
+│                                                                              │
+│  ┌──────────┐  ┌───────────────┐  ┌──────────────────┐  ┌────────────────┐ │
+│  │  Routes   │→│  Controllers  │→│     Models        │→│  PostgreSQL    │ │
+│  │  /api/*   │  │  (logica de   │  │  (queries SQL)   │  │  (wms_db)     │ │
+│  └──────────┘  │  negocio)     │  └──────────────────┘  └────────────────┘ │
+│                └───────┬───────┘                                             │
+│                        │                                                     │
+│  ┌────────────────────┐│┌───────────────────────┐┌──────────────────────┐   │
+│  │  Middlewares       │││  Services              ││  Utils               │   │
+│  │  auth.js (JWT+RBAC)│││  blend.service.js      ││  picking-routes.js   │   │
+│  │  errorHandler.js   │││  stellar.service.js    ││                      │   │
+│  │  upload.js (Multer)│││  etherfuse.service.js  ││                      │   │
+│  └────────────────────┘│└───────────┬───────────┘└──────────────────────┘   │
+└────────────────────────┼────────────┼────────────────────────────────────────┘
+                         │            │
+          ┌──────────────┘            └──────────────┐
+          ▼                                          ▼
+┌──────────────────────┐              ┌──────────────────────────────────────┐
+│  PostgreSQL (Azure)  │              │       Stellar / Soroban              │
+│                      │              │                                      │
+│  13 tablas WMS       │              │  Factory Contract ──► Registro orgs  │
+│  6 tablas Harmony    │              │  Org Contract ──► Tareas, puntos,    │
+│  1 tabla Blend       │              │                    periodos, claims  │
+│                      │              │  Blend Pool ──► Yield sobre USDC     │
+│  TZ: America/Bogota  │              │  Etherfuse ──► USDC → MXN (fiat)    │
+└──────────────────────┘              └──────────────────────────────────────┘
 ```
 
-### Patrón MVC
-El backend sigue el patrón **MVC (Model-View-Controller)**:
-- **Models** (`src/models/*.model.js`): Métodos estáticos con queries SQL directas
-- **Controllers** (`src/controllers/*.controller.js`): Lógica de negocio y validaciones
-- **Routes** (`src/routes/*.routes.js`): Definición de endpoints y aplicación de middlewares
+---
+
+## Stack Tecnologico
+
+| Capa | Tecnologia | Version | Proposito |
+|------|-----------|---------|-----------|
+| **Frontend** | React | 19.1 | Framework UI |
+| | Vite | 7.1 | Build tool y dev server |
+| | TailwindCSS | 3.4 | Estilos utilitarios |
+| | Zustand | 5.0 | Estado global |
+| | React Router | 7.9 | Enrutamiento SPA |
+| | React Hook Form | 7.63 | Formularios |
+| | Lucide React | 0.544 | Iconografia |
+| | Freighter API | 6.0 | Wallet Stellar |
+| **Backend** | Node.js | 20+ | Runtime |
+| | Express | 4.18 | Framework HTTP |
+| | pg (node-postgres) | 8.11 | Driver PostgreSQL |
+| | jsonwebtoken | 9.0 | Autenticacion JWT |
+| | bcrypt | 5.1 | Hashing de passwords |
+| | Winston | 3.19 | Logging estructurado |
+| | Helmet | - | Headers de seguridad |
+| | express-rate-limit | - | Proteccion contra brute-force |
+| | Multer | 2.0 | Subida de archivos |
+| **Database** | PostgreSQL | 14+ | Base de datos relacional |
+| **Blockchain** | Stellar SDK | 14.6 | Transacciones Stellar |
+| | Soroban SDK | 21.7 | Smart contracts (Rust) |
+| | Blend SDK | 3.2 | Integracion DeFi |
+| **Fiat** | Etherfuse FX API | - | Conversion USDC a moneda local |
+| **Infra** | Azure | - | Cloud (Static Web Apps + App Service) |
 
 ---
 
 ## Estructura del Proyecto
 
 ```
-WMS/
-├── back/                               # Backend (Node.js / Express)
+harmony-wms/
+├── back/                                 # Backend (Node.js / Express)
+│   ├── server.js                         # Entry point
 │   ├── src/
-│   │   ├── app.js                      # Configuración Express (CORS, middlewares)
-│   │   ├── server.js                   # Punto de entrada, puerto 3000
+│   │   ├── app.js                        # Config Express (CORS, middlewares, rutas)
 │   │   ├── config/
-│   │   │   └── db.js                   # Pool PostgreSQL + helpers de transacción
+│   │   │   ├── db.js                     # Pool PostgreSQL + timezone Colombia
+│   │   │   ├── dns-fix.js               # Fix DNS para dominios Stellar
+│   │   │   └── logger.js                # Winston logger
 │   │   ├── controllers/
-│   │   │   ├── auth.controller.js      # Login, registro, perfil
-│   │   │   ├── clientes.controller.js  # CRUD clientes
-│   │   │   ├── productos.controller.js # CRUD productos + stock
-│   │   │   ├── ordenes.controller.js   # Ciclo de vida de órdenes
-│   │   │   ├── ubicaciones.controller.js # Gestión de ubicaciones
-│   │   │   ├── recepciones.controller.js # Recepción de mercancía
-│   │   │   ├── averias.controller.js   # Reportes de daños
-│   │   │   ├── bodegas.controller.js   # Gestión de bodegas
-│   │   │   ├── transferencias.controller.js # Transferencias entre bodegas
-│   │   │   ├── inventario.controller.js # Consulta de inventario
-│   │   │   ├── proveedores.controller.js # CRUD proveedores
-│   │   │   ├── desempeno.controller.js # KPIs y métricas
-│   │   │   └── facturacion.controller.js # Facturas
-│   │   ├── models/
+│   │   │   ├── auth.controller.js        # Login, registro, JWT
+│   │   │   ├── orden.controller.js       # Ciclo de vida de ordenes
+│   │   │   ├── harmony.controller.js     # Incentivos Web3
+│   │   │   ├── inventario.controller.js  # Consultas de stock
+│   │   │   ├── bodega.controller.js      # Gestion de bodegas
+│   │   │   ├── producto.controller.js    # CRUD productos
+│   │   │   ├── cliente.controller.js     # CRUD clientes
+│   │   │   ├── ubicacion.controller.js   # Ubicaciones de bodega
+│   │   │   ├── recepcion.controller.js   # Recepciones de mercancia
+│   │   │   ├── averia.controller.js      # Reportes de danos
+│   │   │   ├── desempeno.controller.js   # KPIs y metricas
+│   │   │   ├── proveedor.controller.js   # CRUD proveedores
+│   │   │   ├── transferencia.controller.js # Transferencias inter-bodega
+│   │   │   └── upload.controller.js      # Subida de archivos
+│   │   ├── models/                       # Data access layer (static methods + SQL)
 │   │   │   ├── auth.model.js
-│   │   │   ├── clientes.model.js
-│   │   │   ├── productos.model.js
-│   │   │   ├── ordenes.model.js
-│   │   │   ├── ubicaciones.model.js
-│   │   │   ├── recepciones.model.js
-│   │   │   ├── averias.model.js
-│   │   │   ├── bodegas.model.js
-│   │   │   ├── transferencias.model.js
-│   │   │   ├── proveedores.model.js
-│   │   │   └── desempeno.model.js
-│   │   ├── routes/
-│   │   │   ├── auth.routes.js
-│   │   │   ├── clientes.routes.js
-│   │   │   ├── productos.routes.js
-│   │   │   ├── ordenes.routes.js
-│   │   │   ├── ubicaciones.routes.js
-│   │   │   ├── recepciones.routes.js
-│   │   │   ├── averias.routes.js
-│   │   │   ├── bodegas.routes.js
-│   │   │   ├── transferencias.routes.js
-│   │   │   ├── inventario.routes.js
-│   │   │   ├── proveedores.routes.js
-│   │   │   ├── desempeno.routes.js
-│   │   │   └── upload.routes.js
-│   │   ├── middlewares/
-│   │   │   ├── auth.js                 # JWT verification + RBAC
-│   │   │   ├── errorHandler.js         # Manejo centralizado de errores
-│   │   │   └── upload.js               # Multer: fotos (máx 10 archivos)
-│   │   └── utils/
-│   │       └── picking-routes.js       # Algoritmo de optimización de ruta
-│   ├── database/
-│   │   ├── schema.sql                  # Esquema maestro de la BD
-│   │   ├── seed.sql                    # Datos iniciales de prueba
-│   │   └── migrations/
-│   │       └── 001_add_colombia_timezone.sql
-│   ├── uploads/                        # Imágenes subidas (evidencias, productos)
-│   ├── .env                            # Variables de entorno (no versionado)
-│   └── package.json
-│
-├── front/                              # Frontend (React / Vite)
-│   ├── src/
-│   │   ├── App.jsx                     # Rutas SPA + protección por rol
-│   │   ├── main.jsx                    # Punto de entrada React
-│   │   ├── pages/
-│   │   │   ├── Login.jsx
-│   │   │   ├── Register.jsx
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Productos.jsx
-│   │   │   ├── Ordenes.jsx
-│   │   │   ├── AprobarOrdenes.jsx
-│   │   │   ├── Clientes.jsx
-│   │   │   ├── Ubicaciones.jsx
-│   │   │   ├── ListaAlistamiento.jsx   # Lista de órdenes en picking
-│   │   │   ├── DetalleAlistamiento.jsx # Picking de una orden
-│   │   │   ├── ListaEmpaque.jsx        # Lista de órdenes en empaque
-│   │   │   ├── DetalleEmpaque.jsx      # Empaque de una orden
-│   │   │   ├── Recepciones.jsx
-│   │   │   ├── Averias.jsx
-│   │   │   ├── Almacenes.jsx
-│   │   │   ├── Desempeno.jsx
-│   │   │   └── Facturacion.jsx
-│   │   ├── components/
-│   │   │   ├── layout/
-│   │   │   │   └── Layout.jsx          # Sidebar + header
-│   │   │   └── common/
-│   │   │       └── AutocompleteInput.jsx
+│   │   │   ├── orden.model.js            # getOptimizedPickingList()
+│   │   │   ├── harmony.model.js          # Wallets, periodos, tareas, puntos
+│   │   │   ├── desempeno.model.js        # Calculos KPI
+│   │   │   └── ...                       # (uno por dominio)
 │   │   ├── services/
-│   │   │   └── api.js                  # Axios + interceptores + APIs por módulo
-│   │   ├── store/
-│   │   │   └── authStore.js            # Zustand: usuario, token, sesión
+│   │   │   ├── blend.service.js          # Blend Protocol (supply/withdraw USDC)
+│   │   │   ├── stellar.service.js        # Pipeline Soroban (build→sign→submit)
+│   │   │   └── etherfuse.service.js      # USDC → fiat via Etherfuse FX
+│   │   ├── routes/                       # Definicion de endpoints REST
+│   │   ├── middlewares/
+│   │   │   ├── auth.js                   # JWT + RBAC (verifyToken, checkRole)
+│   │   │   ├── errorHandler.js           # Manejo centralizado de errores
+│   │   │   └── upload.js                 # Multer config
 │   │   └── utils/
-│   │       └── dateUtils.js
-│   ├── public/
-│   │   ├── staticwebapp.config.json    # Azure Static Web Apps SPA routing
-│   │   └── web.config                  # Azure App Service IIS routing
-│   └── package.json
+│   │       └── picking-routes.js         # Algoritmo de optimizacion de ruta
+│   ├── database/
+│   │   ├── schema.sql                    # Esquema maestro
+│   │   ├── seed.sql                      # Datos de prueba
+│   │   ├── seed_ordenes_demo.sql         # Ordenes demo para actividades
+│   │   ├── seed_ordenes_flujo.sql        # Ordenes para practicar el flujo
+│   │   └── migrations/                   # Migraciones incrementales
+│   ├── scripts/                          # Utilidades (setup, generadores, harmony)
+│   ├── tests/                            # Tests
+│   └── uploads/                          # Archivos subidos por usuarios
 │
-├── CLAUDE.md                           # Instrucciones para Claude Code
-└── README.md                           # Este archivo
+├── front/                                # Frontend (React / Vite)
+│   ├── src/
+│   │   ├── App.jsx                       # Router + rutas protegidas por rol
+│   │   ├── main.jsx                      # Entry point React
+│   │   ├── store/
+│   │   │   └── authStore.js              # Zustand (user, token, isAuthenticated)
+│   │   ├── services/
+│   │   │   └── api.js                    # Axios + interceptores JWT
+│   │   ├── pages/
+│   │   │   ├── auth/                     # Login, Register
+│   │   │   ├── dashboard/                # Dashboard principal
+│   │   │   ├── ordenes/                  # Ordenes, AprobarOrdenes
+│   │   │   ├── actividades/              # Alistamiento (picking), Empaque (packing)
+│   │   │   ├── almacenes/                # Bodegas, inventario, transferencias
+│   │   │   ├── productos/                # Catalogo de productos
+│   │   │   ├── ubicaciones/              # Mapa fisico de bodega
+│   │   │   ├── recepciones/              # Entrada de mercancia
+│   │   │   ├── clientes/                 # Gestion de clientes
+│   │   │   ├── proveedores/              # Gestion de proveedores
+│   │   │   ├── averias/                  # Reportes de danos + evidencia
+│   │   │   ├── facturacion/              # Facturacion + historico
+│   │   │   ├── desempeno/                # KPIs, rankings, actividades
+│   │   │   └── harmony/                  # Modulo Web3
+│   │   │       ├── worker/               # MisOrdenes, MiRendimiento
+│   │   │       ├── leader/               # Actividades, Metricas, Fondo, Live
+│   │   │       └── admin/                # HarmonyConfig
+│   │   └── components/
+│   │       ├── layout/Layout.jsx         # Sidebar + header
+│   │       └── common/                   # Componentes reutilizables
+│   └── public/
+│       ├── staticwebapp.config.json      # Azure Static Web Apps routing
+│       └── web.config                    # Azure App Service (IIS) routing
+│
+├── contracts/                            # Smart Contracts (Soroban / Rust)
+│   ├── Cargo.toml                        # Workspace config
+│   ├── factory/src/lib.rs                # Factory: registro de organizaciones
+│   ├── organization/src/lib.rs           # Org: miembros, tareas, periodos, claims
+│   └── DEPLOY.md                         # Guia de deploy en Stellar
+│
+├── CLAUDE.md                             # Instrucciones para Claude Code
+├── BLEND_YIELD_DEMO.md                   # Demo verificable de Blend yield
+├── TESTING.md                            # Documentacion de testing
+└── README.md                             # Este archivo
 ```
+
+---
+
+## Modulo WMS — Gestion de Almacen
+
+### Flujo de Ordenes de Venta
+
+El nucleo del WMS es un workflow de 8 estados con transiciones controladas por rol:
+
+```
+  [VENDEDOR]                        [JEFE BODEGA]
+      │                                  │
+      │  Crea orden                      │
+      ▼                                  │
+ ┌──────────────────┐   Aprueba         │
+ │   Pendiente      │─────────────►  ┌──────────────┐
+ │   Aprobacion     │                │   Aprobada   │
+ └──────────────────┘   Rechaza      └──────┬───────┘
+          │                │                │
+          ▼                │         Asigna operario
+ ┌──────────────────┐◄────┘                │
+ │   Rechazada      │                      ▼
+ └──────────────────┘
+                           [OPERARIO]    ┌──────────────────┐
+                                         │  En_Alistamiento │ ← Picking optimizado
+                                         └────────┬─────────┘
+                                                  │
+                                           Finaliza picking
+                                                  │
+                                                  ▼
+                                         ┌──────────────────┐
+                                         │   En_Empaque     │ ← Packing + cajas
+                                         └────────┬─────────┘
+                                                  │
+                           [FACTURACION]   Finaliza empaque
+                                │                 │
+                                │                 ▼
+                                │        ┌──────────────────┐
+                                │◄───────│ Lista_Facturar   │
+                                │        └──────────────────┘
+                                │
+                           Genera factura
+                                │
+                                ▼
+                         ┌─────────────┐
+                         │  Facturada  │ ← Estado final
+                         └─────────────┘
+```
+
+### Picking Optimizado
+
+La funcion `getOptimizedPickingList(orden_id)` ordena los productos por ruta de bodega para minimizar el desplazamiento del operario:
+
+- Ordenamiento: `orden_ruta` → `estanteria` → `fila` → `nivel`
+- Soporte para multiples ubicaciones por producto (primaria vs. secundaria)
+- Estadisticas: total items, ubicaciones a visitar, productos sin ubicacion
+
+### Otros Modulos WMS
+
+| Modulo | Descripcion |
+|--------|-------------|
+| **Inventario** | Stock por ubicacion fisica, reservas automaticas al aprobar ordenes |
+| **Ubicaciones** | Mapa de bodega (estanteria/fila/nivel), asignacion de productos |
+| **Recepciones** | Entrada de mercancia con asignacion a ubicaciones |
+| **Averias** | Reportes de dano con tipos (Dano, Faltante, Rotura, Vencimiento) + fotos |
+| **Bodegas** | Multi-bodega con transferencias inter-bodega |
+| **Proveedores** | CRUD de proveedores |
+| **Clientes** | Base de datos de clientes (NIT/CC, razon social, ciudad) |
+| **Facturacion** | Cierre del ciclo: numeracion consecutiva, historico |
+| **Desempeno** | KPIs por operario: ordenes procesadas, tiempos promedio, rankings |
+
+---
+
+## Modulo Harmony — Incentivos Web3
+
+Harmony es el modulo de incentivos que conecta el desempeno operativo del WMS con recompensas on-chain en Stellar.
+
+### Como funciona
+
+```
+1. EMPRESARIO crea un periodo de recompensas
+   └─► Deposita USDC como fondo (ej: $500 USDC para el mes)
+       └─► Auto-deposit en Blend Protocol (genera yield mientras esta idle)
+
+2. SUPERVISOR asigna actividades/tareas a los WORKERS
+   └─► Cada actividad tiene un template con puntos base
+
+3. WORKERS completan tareas con evidencia
+   └─► El sistema registra la actividad automaticamente desde el WMS
+
+4. SUPERVISOR revisa y aprueba/rechaza tareas
+   └─► Puede aplicar multiplicador de puntos (0% - 200%)
+
+5. Se cierra el periodo
+   └─► Auto-withdraw de Blend (USDC original + yield)
+   └─► Se calculan los puntos totales de cada worker
+
+6. Se distribuye el fondo proporcionalmente
+   └─► Worker con 30% de los puntos → recibe 30% del fondo
+   └─► Pago directo en USDC a su wallet Stellar
+   └─► O conversion automatica a moneda local via Etherfuse
+
+7. El yield de Blend queda para el empresario como ganancia pasiva
+```
+
+### Vistas por Rol
+
+| Rol | Paginas Disponibles | Funciones |
+|-----|---------------------|-----------|
+| **Worker** | Mis Ordenes, Mi Rendimiento | Ver tareas asignadas, progreso, puntos acumulados |
+| **Leader** | Actividades, Metricas, Trabajadores, Fondo, Live | Gestionar tareas, revisar evidencia, manejar periodos |
+| **Admin** | HarmonyConfig | Configurar contratos, tokens, Blend, Etherfuse |
+
+---
+
+## Smart Contracts (Soroban/Rust)
+
+Dos contratos desplegados en Stellar (testnet), escritos en Rust con Soroban SDK 21.7:
+
+### Factory Contract (`contracts/factory/src/lib.rs`)
+
+Punto de entrada del ecosistema. Registro centralizado de organizaciones.
+
+| Funcion | Acceso | Descripcion |
+|---------|--------|-------------|
+| `initialize(admin)` | Una vez | Setup inicial |
+| `register_org(org_address)` | Admin | Registrar nueva organizacion |
+| `get_org(org_id)` | Publico | Consultar organizacion por ID |
+| `get_org_count()` | Publico | Total de organizaciones |
+| `transfer_admin(new_admin)` | Admin + nuevo | Transferir admin (requiere firma de ambos) |
+
+### Organization Contract (`contracts/organization/src/lib.rs`)
+
+Contrato principal de Harmony. Gestiona miembros, actividades, periodos y distribucion de recompensas.
+
+**Roles on-chain:** `Owner` | `Supervisor` | `Worker`
+
+**Estado de periodos (state machine):**
+```
+Open → Closed → Distributed
+```
+
+**Estado de tareas:**
+```
+Assigned → Completed → Approved / Rejected / Skipped
+```
+
+| Funcion | Acceso | Descripcion |
+|---------|--------|-------------|
+| `add_member(address, role)` | Owner | Agregar miembro a la organizacion |
+| `create_activity_template(name, points)` | Owner/Supervisor | Crear tipo de actividad |
+| `assign_task(worker, template_id, period_id)` | Supervisor | Asignar tarea |
+| `complete_task(task_id, evidence_url)` | Worker (propio) | Marcar tarea completada |
+| `review_task(task_id, multiplier, state)` | Supervisor | Aprobar/rechazar con multiplicador |
+| `open_period(start, end, asset, fund)` | Owner | Crear periodo de recompensas |
+| `close_period(period_id)` | Owner | Cerrar periodo |
+| `distribute_period(period_id)` | Owner | Calcular y asignar recompensas |
+| `claim_reward(period_id)` | Worker | Reclamar su parte on-chain |
+| `sweep_expired_claims(period_id)` | Owner | Recuperar claims no reclamados (>1 ano) |
+| `pause() / unpause()` | Owner | Control de emergencia |
+
+**Garantias de seguridad:**
+- `require_auth()` en todas las operaciones que mutan estado
+- Guard de inicializacion (imposible reinicializar)
+- State machine estricta — solo transiciones hacia adelante
+- Patron CEI (Checks-Effects-Interactions) en claims
+- Overflow checks en aritmetica
+- Multiplicador acotado [0%, 200%] (basis points)
+- Prevencion de double-claim (marca antes de transferir)
+- TTL extendido a 365 dias
+
+---
+
+## Blend Protocol — Yield Automatico
+
+Cuando un empresario deposita USDC como fondo de incentivos, ese dinero normalmente queda idle (sin producir) durante todo el periodo. Con la integracion de Blend Protocol, el USDC se deposita automaticamente en un pool de lending DeFi en Stellar, generando rendimiento.
+
+### Flujo
+
+```
+EMPRESARIO                         HARMONY (Backend)                   BLEND PROTOCOL (Soroban)
+    |                                     |                                     |
+    |--- Deposita USDC (fondo) ---------> |                                     |
+    |                                     |--- Auto-deposit USDC -------------> |
+    |                                     |    (SupplyCollateral)                |
+    |                                     |<-- Recibe bTokens -----------------|
+    |                                     |                                     |
+    |   [ USDC genera yield en Blend mientras el periodo esta abierto ]        |
+    |                                     |                                     |
+    |                                     |--- Lider cierra periodo             |
+    |                                     |--- Auto-withdraw USDC + yield ---> |
+    |                                     |    (WithdrawCollateral)              |
+    |                                     |<-- USDC original + yield ----------|
+    |                                     |                                     |
+    |                                     |--- Distribuir a workers             |
+    |<-- Yield queda en wallet admin -----|                                     |
+    |    (ganancia del empresario)         |                                     |
+```
+
+### Prueba E2E verificada en Testnet
+
+| Paso | Operacion | Monto | TX Hash |
+|------|-----------|-------|---------|
+| 1 | Adquisicion USDC (DEX) | 10 USDC | `e742be77...087a` |
+| 2 | Supply a Blend | 3 USDC | `e095cc90...369d` |
+| 3 | Withdraw + yield | **3.0909742 USDC** | `9e21f142...ce67` |
+| | **Yield ganado** | **+0.0909742 USDC (~3.03%)** | |
+
+### Resiliencia
+
+| Escenario | Comportamiento |
+|-----------|----------------|
+| Blend desactivado | USDC queda en wallet admin, distribucion normal |
+| Deposit falla | Warning en log, fondo se confirma sin Blend |
+| Withdraw falla | Posicion `Failed`, distribucion usa balance del admin |
+| Blend SDK no disponible | Lazy-loading con try/catch, sistema opera sin Blend |
+
+### Proyeccion de Rendimiento (Mainnet, ~5-7% APY)
+
+| Fondo | Periodo | Yield estimado |
+|-------|---------|----------------|
+| $100 USDC | 15 dias | +$0.21 - $0.29 |
+| $500 USDC | 30 dias | +$2.05 - $2.88 |
+| $1,000 USDC | 30 dias | +$4.11 - $5.75 |
+| $5,000 USDC | 30 dias | +$20.55 - $28.77 |
+| $10,000 USDC | 90 dias | +$123.29 - $172.60 |
+
+---
+
+## Etherfuse — Cash-Out a Cuenta Bancaria
+
+Etherfuse FX permite que los operarios reciban sus recompensas en moneda local directamente en su cuenta bancaria, sin necesidad de manejar cripto.
+
+### Flujo
+
+```
+Worker gana recompensa
+    └─► Backend calcula monto en USDC
+        └─► Llama a Etherfuse FX API
+            └─► Etherfuse convierte USDC → MXN (o moneda local)
+                └─► Deposito directo a cuenta bancaria del worker
+```
+
+### Datos bancarios del worker
+
+Cada usuario puede registrar sus datos bancarios en su perfil:
+- Nombre del banco
+- Numero de cuenta / CLABE
+- Moneda de preferencia
+
+El backend almacena estos datos y los usa al momento de la distribucion para ejecutar el pago via Etherfuse automaticamente.
 
 ---
 
 ## Base de Datos
 
-### Diagrama Entidad-Relación (simplificado)
+### Tablas WMS (13 tablas)
+
+| Tabla | Descripcion |
+|-------|-------------|
+| `usuarios` | Usuarios con roles (Vendedor, Jefe_Bodega, Operario, Facturacion, Admin) |
+| `clientes` | Base de clientes (NIT/CC, razon social, contacto, ciudad) |
+| `productos` | Catalogo de productos (codigo, precios, stock) |
+| `ordenes_venta` | Ordenes con workflow de 8 estados |
+| `orden_detalles` | Items de cada orden (cantidad pedida/alistada/empacada) |
+| `ubicaciones` | Posiciones fisicas de bodega (estanteria/fila/nivel/orden_ruta) |
+| `inventario_ubicaciones` | Stock por ubicacion + reservas |
+| `bodegas` | Multi-bodega |
+| `inventario_bodegas` | Stock consolidado por bodega |
+| `recepciones` / `recepcion_detalles` | Entrada de mercancia |
+| `averias` | Reportes de dano con evidencia |
+| `proveedores` | Proveedores |
+| `desempeno_actividades` | Registro de actividades para KPIs |
+
+### Tablas Harmony (6 tablas)
+
+| Tabla | Descripcion |
+|-------|-------------|
+| `harmony_config` | Configuracion global (contratos, tokens, Blend, Etherfuse) |
+| `harmony_periodos` | Periodos de recompensas con estado y fondo |
+| `harmony_plantillas_actividad` | Templates de actividades con puntos base |
+| `harmony_tareas` | Asignaciones individuales de tareas |
+| `harmony_puntos_periodo` | Puntos ganados y montos ajustados por worker/periodo |
+| `harmony_historial_cambios` | Log de auditoria |
+
+### Tabla Blend (1 tabla)
+
+| Tabla | Descripcion |
+|-------|-------------|
+| `harmony_blend_positions` | Posiciones en Blend: depositos, retiros, yield, tx hashes |
+
+### Configuracion
+
+- **Timezone:** `America/Bogota` (UTC-5) configurada automaticamente en cada conexion
+- **SSL:** Habilitado para compatibilidad con Azure PostgreSQL
+- **Pool:** Max 10 conexiones, idle timeout 20s
+- **Transacciones:** Soporte ACID via `getClient()` con BEGIN/COMMIT/ROLLBACK
+
+---
+
+## API REST
+
+### Autenticacion
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login (email + password) → JWT token |
+| POST | `/api/auth/register` | Registro de nuevo usuario |
+| GET | `/api/auth/profile` | Perfil del usuario autenticado |
+| POST | `/api/auth/refresh` | Refrescar JWT token |
+
+### Ordenes de Venta
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| POST | `/api/ordenes` | Crear orden |
+| GET | `/api/ordenes` | Listar ordenes (filtros por estado, vendedor, fecha) |
+| GET | `/api/ordenes/:id` | Detalle de una orden |
+| PUT | `/api/ordenes/:id` | Actualizar orden |
+| POST | `/api/ordenes/:id/aprobar` | Aprobar orden |
+| POST | `/api/ordenes/:id/rechazar` | Rechazar orden |
+| POST | `/api/ordenes/:id/alistamiento` | Iniciar/finalizar picking |
+| POST | `/api/ordenes/:id/empaque` | Iniciar/finalizar packing |
+| POST | `/api/ordenes/:id/facturar` | Facturar orden |
+
+### Inventario y Ubicaciones
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| GET | `/api/inventario/ubicaciones` | Inventario por ubicacion |
+| GET | `/api/inventario/bodega/:id` | Inventario de una bodega |
+| GET | `/api/ubicaciones` | Listar ubicaciones |
+| POST | `/api/ubicaciones` | Crear ubicacion |
+
+### Harmony (Web3)
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| GET | `/api/harmony/config` | Obtener configuracion Harmony |
+| POST | `/api/harmony/config` | Actualizar configuracion |
+| GET | `/api/harmony/usuarios-wallets` | Usuarios con wallets Stellar |
+| POST | `/api/harmony/periodo` | Crear periodo de recompensas |
+| POST | `/api/harmony/periodo/:id/confirmar-fondo` | Confirmar fondo (+ auto-deposit Blend) |
+| POST | `/api/harmony/periodo/:id/cerrar` | Cerrar periodo |
+| POST | `/api/harmony/distribuir` | Distribuir recompensas (+ auto-withdraw Blend) |
+
+### Otros Modulos
+
+Endpoints similares (CRUD) para: productos, clientes, proveedores, recepciones, averias, bodegas, transferencias, desempeno, upload.
+
+**Total: 70+ endpoints REST.**
+
+---
+
+## Roles y Permisos (RBAC)
 
 ```
-┌──────────────┐       ┌─────────────────────┐       ┌───────────────┐
-│   usuarios   │       │    ordenes_venta     │       │    clientes   │
-│──────────────│       │─────────────────────│       │───────────────│
-│ usuario_id PK│◄──┐   │ orden_id PK         │──────►│ cliente_id PK │
-│ nombre       │   │   │ numero_orden (UNIQ) │       │ nit_cc (UNIQ) │
-│ email (UNIQ) │   │   │ cliente_id FK       │       │ razon_social  │
-│ password_hash│   │   │ vendedor_id FK ─────┼──────►│ telefono      │
-│ rol          │   │   │ estado (enum)       │       │ email         │
-│ activo       │   │   │ total               │       │ ciudad        │
-└──────────────┘   │   │ aprobado_por FK ────┼──┐    └───────────────┘
-                   │   │ alistador_asignado ─┼──┤
-                   │   │ empacador_asignado ─┼──┘
-                   │   └──────────┬──────────┘
-                   │              │ 1:N
-                   │              ▼
-                   │   ┌─────────────────────┐
-                   │   │    orden_detalles   │
-                   │   │─────────────────────│
-                   │   │ detalle_id PK       │
-                   │   │ orden_id FK         │
-                   │   │ producto_id FK ─────┼──┐
-                   │   │ cantidad_pedida      │  │
-                   │   │ cantidad_alistada   │  │
-                   │   │ cantidad_empacada   │  │
-                   │   │ precio_unitario     │  │
-                   │   │ subtotal            │  │
-                   │   └─────────────────────┘  │
-                   │                            │
-                   │   ┌─────────────────────┐  │   ┌───────────────────────┐
-                   │   │      productos      │◄─┘   │ inventario_ubicaciones│
-                   │   │─────────────────────│      │───────────────────────│
-                   │   │ producto_id PK      │◄─────│ inventario_id PK      │
-                   │   │ codigo (UNIQ)       │      │ producto_id FK        │
-                   │   │ nombre              │      │ ubicacion_id FK ──────┼──┐
-                   │   │ categoria           │      │ cantidad              │  │
-                   │   │ precio_venta        │      │ cantidad_reservada    │  │
-                   │   │ stock_actual        │      │ es_ubicacion_primaria │  │
-                   │   │ stock_reservado     │      └───────────────────────┘  │
-                   │   └─────────────────────┘                                 │
-                   │                                ┌──────────────────────┐   │
-                   │   ┌─────────────────────┐      │      ubicaciones     │◄──┘
-                   │   │      averias        │      │──────────────────────│
-                   │   │─────────────────────│      │ ubicacion_id PK      │
-                   │   │ averia_id PK        │      │ codigo (UNIQ)        │
-                   │   │ producto_id FK      │      │ estanteria           │
-                   │   │ tipo_averia (enum)  │      │ fila                 │
-                   │   │ estado (enum)       │      │ nivel                │
-                   │   │ reportado_por FK ───┼──────│ orden_ruta           │
-                   │   └─────────────────────┘      └──────────────────────┘
-                   │
-                   │   ┌─────────────────────┐
-                   └───│     recepciones     │
-                       │─────────────────────│
-                       │ recepcion_id PK     │
-                       │ numero_documento    │
-                       │ proveedor           │
-                       │ usuario_recibe FK   │
-                       └──────────┬──────────┘
-                                  │ 1:N
-                                  ▼
-                       ┌─────────────────────┐
-                       │  recepcion_detalles │
-                       │─────────────────────│
-                       │ detalle_recepcion_id│
-                       │ recepcion_id FK     │
-                       │ producto_id FK      │
-                       │ ubicacion_id FK     │
-                       │ cantidad_recibida   │
-                       └─────────────────────┘
-```
-
-### Tablas Principales
-
-#### `usuarios` — Usuarios del sistema
-```sql
-usuario_id    SERIAL PRIMARY KEY
-nombre        VARCHAR(100) NOT NULL
-email         VARCHAR(100) UNIQUE NOT NULL
-password_hash VARCHAR(255) NOT NULL
-telefono      VARCHAR(20)
-rol           ENUM('Vendedor','Jefe_Bodega','Operario','Facturacion','Administrador')
-activo        BOOLEAN DEFAULT true
-fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-```
-
-#### `productos` — Catálogo de productos
-```sql
-producto_id   SERIAL PRIMARY KEY
-codigo        VARCHAR(50) UNIQUE NOT NULL
-nombre        VARCHAR(200) NOT NULL
-descripcion   TEXT
-categoria     VARCHAR(100)
-subcategoria  VARCHAR(100)
-marca         VARCHAR(100)
-precio_base   DECIMAL(12,2)
-precio_compra DECIMAL(12,2)
-precio_venta  DECIMAL(12,2)
-stock_actual  INTEGER DEFAULT 0
-stock_reservado INTEGER DEFAULT 0
-imagen_url    TEXT
-activo        BOOLEAN DEFAULT true
-```
-
-#### `ordenes_venta` — Órdenes de venta
-```sql
-orden_id      SERIAL PRIMARY KEY
-numero_orden  VARCHAR(20) UNIQUE  -- formato: ORD-1, ORD-2...
-cliente_id    FK → clientes
-vendedor_id   FK → usuarios
-estado        ENUM(8 estados)
-subtotal, descuento_total, impuestos_total, total  DECIMAL(12,2)
--- Campos de workflow:
-aprobado_por, fecha_aprobacion
-alistador_asignado, fecha_inicio_alistamiento, fecha_fin_alistamiento
-empacador_asignado, fecha_inicio_empaque, fecha_fin_empaque
-```
-
-#### `ubicaciones` — Posiciones físicas en la bodega
-```sql
-ubicacion_id  SERIAL PRIMARY KEY
-codigo        VARCHAR(50) UNIQUE  -- Ej: "EST-A-1-1"
-estanteria    VARCHAR(20)         -- Letra: A, B, C...
-fila          INTEGER             -- Número de fila
-nivel         INTEGER             -- Altura: 1=suelo, 2=medio, 3=alto
-orden_ruta    INTEGER             -- Para optimización de picking
-activa        BOOLEAN DEFAULT true
-```
-
-#### `inventario_ubicaciones` — Stock por ubicación
-```sql
-inventario_id         SERIAL PRIMARY KEY
-producto_id           FK → productos
-ubicacion_id          FK → ubicaciones
-cantidad              INTEGER DEFAULT 0
-cantidad_reservada    INTEGER DEFAULT 0
-es_ubicacion_primaria BOOLEAN DEFAULT false
-fecha_actualizacion   TIMESTAMP  -- Auto-actualizado por trigger
-UNIQUE (producto_id, ubicacion_id)
-```
-
-### Funciones y Triggers de Base de Datos
-
-```sql
--- Función helper para timestamps en Colombia
-CREATE FUNCTION now_colombia() RETURNS TIMESTAMP AS $$
-  SELECT NOW() AT TIME ZONE 'America/Bogota';
-$$ LANGUAGE SQL;
-
--- Trigger: actualizar fecha en inventario_ubicaciones
-CREATE TRIGGER update_inventario_fecha
-  BEFORE UPDATE ON inventario_ubicaciones
-  FOR EACH ROW EXECUTE FUNCTION update_fecha_actualizacion();
-```
-
-### Configuración de Zona Horaria
-
-Todas las conexiones a PostgreSQL se configuran automáticamente con la zona horaria de Colombia:
-
-```javascript
-// back/src/config/db.js
-pool.on('connect', (client) => {
-  client.query("SET timezone = 'America/Bogota'");
-});
+┌───────────────────┬──────────┬────────────┬──────────┬──────────┬───────────────┐
+│     Accion        │ Vendedor │Jefe_Bodega │ Operario │Facturac. │Administrador  │
+├───────────────────┼──────────┼────────────┼──────────┼──────────┼───────────────┤
+│ Crear ordenes     │    ✓     │     ✓      │    ✗     │    ✗     │      ✓        │
+│ Aprobar/Rechazar  │    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
+│ Picking           │    ✗     │     ✓      │    ✓     │    ✗     │      ✓        │
+│ Packing           │    ✗     │     ✓      │    ✓     │    ✗     │      ✓        │
+│ Facturar          │    ✗     │     ✓      │    ✗     │    ✓     │      ✓        │
+│ Inventario (ver)  │    ✓     │     ✓      │    ✓     │    ✓     │      ✓        │
+│ Inventario (edit) │    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
+│ Clientes          │    ✓     │     ✓      │    ✗     │    ✓     │      ✓        │
+│ Desempeno (propio)│    ✗     │     ✗      │    ✓     │    ✗     │      ✓        │
+│ Desempeno (global)│    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
+│ Averias           │    ✓     │     ✓      │    ✓     │    ✓     │      ✓        │
+│ Harmony config    │    ✗     │     ✗      │    ✗     │    ✗     │      ✓        │
+│ Harmony leader    │    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
+│ Harmony worker    │    ✗     │     ✗      │    ✓     │    ✗     │      ✓        │
+└───────────────────┴──────────┴────────────┴──────────┴──────────┴───────────────┘
 ```
 
 ---
 
-## Flujo de Órdenes
+## Seguridad
 
-El sistema implementa un flujo de trabajo estricto con 8 estados posibles:
-
-```
-                    ┌─────────────────────────────────────────────────────┐
-                    │                  FLUJO DE ESTADOS                    │
-                    └─────────────────────────────────────────────────────┘
-
-  [VENDEDOR]                     [JEFE_BODEGA]
-      │                               │
-      │  Crea orden                   │
-      ▼                               │
- ┌─────────────────┐    Aprueba       │
- │   Pendiente     │──────────────────►  ┌─────────────┐
- │   Aprobacion    │                     │   Aprobada  │
- └─────────────────┘    Rechaza          └──────┬──────┘
-                        │                       │
- ┌─────────────────┐◄───┘               Asigna operario
- │   Rechazada     │                           │
- └─────────────────┘                           ▼
-
-                    [OPERARIO]         ┌──────────────────┐
-                                       │  En_Alistamiento │  ← Picking
-                                       └────────┬─────────┘    optimizado
-                                                │
-                                         Finaliza picking
-                                                │
-                                                ▼
-                                       ┌──────────────────┐
-                                       │   En_Empaque     │  ← Packing
-                                       └────────┬─────────┘
-                                                │
-                    [FACTURACION]        Finaliza empaque
-                         │                      │
-                         │                      ▼
-                         │             ┌──────────────────┐
-                         │◄────────────│ Lista_Facturar   │
-                         │             └──────────────────┘
-                         │
-                    Genera factura
-                         │
-                         ▼
-                  ┌─────────────┐
-                  │  Facturada  │  ← Estado final
-                  └─────────────┘
-```
-
-### Detalle de Cada Estado
-
-| Estado | Responsable | Acciones Disponibles |
-|---|---|---|
-| `Pendiente_Aprobacion` | Vendedor | Enviada a revisión del Jefe de Bodega |
-| `Aprobada` | Jefe_Bodega | Asignar operario, iniciar alistamiento |
-| `En_Alistamiento` | Operario | Registrar cantidades alistadas por ítem |
-| `En_Empaque` | Operario | Registrar cantidades empacadas, número de cajas |
-| `Lista_Facturar` | Facturación | Generar factura |
-| `Facturada` | — | Estado terminal. Orden completada |
-| `Rechazada` | Jefe_Bodega | Estado terminal. Orden cancelada |
+| Capa | Mecanismo |
+|------|-----------|
+| **Autenticacion** | JWT (24h) + refresh tokens (7d) |
+| **Passwords** | bcrypt con salt |
+| **Autorizacion** | RBAC con `checkRole()` middleware |
+| **HTTP** | Helmet (headers de seguridad) |
+| **Rate Limiting** | 500 req/15min global, 20 req/15min en auth |
+| **SQL Injection** | Queries parametrizadas (pg driver) |
+| **CORS** | Whitelist configurable |
+| **Archivos** | Multer con filtro de tipos y tamano maximo |
+| **Smart Contracts** | `require_auth()`, state machine, CEI pattern, overflow checks |
+| **Datos sensibles** | `.env` no versionado, SSL para PostgreSQL en Azure |
 
 ---
 
-## Roles y Permisos
+## Guia de Inicio Rapido
 
-El sistema implementa **RBAC (Role-Based Access Control)** con 5 roles:
+### Prerrequisitos
 
-```
-┌─────────────────┬──────────┬────────────┬──────────┬──────────┬───────────────┐
-│     Acción      │ Vendedor │Jefe_Bodega │ Operario │Facturac. │Administrador  │
-├─────────────────┼──────────┼────────────┼──────────┼──────────┼───────────────┤
-│ Crear órdenes   │    ✓     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Aprobar órdenes │    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Rechazar órdenes│    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Asignar picking │    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Hacer picking   │    ✗     │     ✓      │    ✓     │    ✗     │      ✓        │
-│ Hacer empaque   │    ✗     │     ✓      │    ✓     │    ✗     │      ✓        │
-│ Facturar        │    ✗     │     ✓      │    ✗     │    ✓     │      ✓        │
-│ Gestionar invent│    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Ver inventario  │    ✓     │     ✓      │    ✓     │    ✓     │      ✓        │
-│ Gestionar produc│    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Gestionar clientes│  ✓     │     ✓      │    ✗     │    ✓     │      ✓        │
-│ Ver desempeño   │    ✗     │     ✓      │    ✓*    │    ✗     │      ✓        │
-│ Ver rankings    │    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Reportar averías│    ✓     │     ✓      │    ✓     │    ✓     │      ✓        │
-│ Gestionar avería│    ✗     │     ✓      │    ✗     │    ✗     │      ✓        │
-│ Administrar todo│    ✗     │     ✗      │    ✗     │    ✗     │      ✓        │
-└─────────────────┴──────────┴────────────┴──────────┴──────────┴───────────────┘
+- Node.js 20+
+- PostgreSQL 14+
+- Git
 
-* Solo puede ver su propio desempeño
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/MariaDelina/PruebaUSDC.git
+cd PruebaUSDC
 ```
 
-### Implementación del RBAC
+### 2. Configurar la base de datos
 
-```javascript
-// Middleware de autenticación
-router.get('/endpoint', verifyToken, checkRole('Jefe_Bodega', 'Admin'), handler);
-
-// verifyToken: valida JWT en header Authorization
-// checkRole:   verifica que el rol del usuario esté en la lista permitida
+```bash
+psql -U postgres -c "CREATE DATABASE wms_db;"
+psql -U postgres -d wms_db -f back/database/schema.sql
+psql -U postgres -d wms_db -f back/database/seed.sql                # Datos iniciales
+psql -U postgres -d wms_db -f back/database/seed_ordenes_flujo.sql  # Ordenes de prueba
 ```
 
----
+### 3. Backend
 
-## Módulos del Sistema
-
-### 1. Autenticación y Usuarios
-
-El sistema usa **JWT (JSON Web Token)** para autenticación stateless:
-
-```
-Login:
-  POST /api/auth/login
-  Body: { email, password }
-  → Devuelve: { token, refreshToken, user }
-
-Token flow:
-  Request → Authorization: Bearer <token>
-  Backend → Verifica firma JWT → Extrae usuario → Autoriza
-
-  Si 401 → Frontend limpia sesión y redirige a /login
+```bash
+cd back
+npm install
+cp .env.example .env   # Editar con tus credenciales
+npm run dev             # http://localhost:3000
 ```
 
-**Credenciales por defecto (admin):**
-- Email: `admin@wms.com`
-- Password: `admin123`
+### 4. Frontend
 
----
-
-### 2. Gestión de Productos
-
-CRUD completo del catálogo con:
-- Código único por producto
-- Categoría / Subcategoría / Marca
-- Precio base, compra y venta
-- Stock actual y reservado
-- Imagen del producto
-- Disponibilidad por ubicación
-- Historial de órdenes
-
-**Consulta de disponibilidad:**
-```
-GET /api/productos/:id/disponibilidad
-→ { stock_actual, stock_reservado, stock_disponible, ubicaciones: [...] }
+```bash
+cd front
+npm install
+npm run dev             # http://localhost:5173
 ```
 
----
-
-### 3. Órdenes de Venta
-
-El módulo más complejo del sistema. Soporta:
-- Creación de órdenes con múltiples ítems
-- Cálculo automático de subtotales, descuentos e impuestos
-- Numeración secuencial automática (`ORD-1`, `ORD-2`, ...)
-- Filtros por estado, vendedor, cliente y rango de fechas
-- Asignación de operarios para picking y empaque
-- Observaciones por etapa del proceso
-
-**Campos calculados automáticamente:**
-```
-subtotal = Σ(cantidad × precio_unitario)
-descuento_total = Σ(subtotal × descuento_porcentaje / 100)
-impuestos_total = (subtotal - descuento_total) × tasa_impuesto
-total = subtotal - descuento_total + impuestos_total
-```
-
----
-
-### 4. Alistamiento (Picking)
-
-El proceso de picking está optimizado para minimizar el recorrido del operario:
-
-```
-Operario accede a: /actividades/alistamiento/:ordenId
-
-1. Sistema carga la "picking list" optimizada por ruta
-2. Productos ordenados por: orden_ruta → estantería → fila → nivel
-3. Operario registra cantidad alistada por ítem
-4. Puede agregar observaciones e imágenes por ítem
-5. Al finalizar: stock se descuenta del inventario
-```
-
-**Pantalla de picking mostraría:**
-```
-┌─────────────────────────────────────────────────┐
-│  ORDEN ORD-42  │  Cliente: Empresa ABC           │
-│  Items: 8      │  Ubicaciones: 5  │  Faltantes: 0│
-├─────────────────────────────────────────────────┤
-│ ① EST-A-1-1  │ Producto X  │ Pedir: 10 │ [___] │
-│ ② EST-A-1-2  │ Producto Y  │ Pedir: 5  │ [___] │
-│ ③ EST-B-2-1  │ Producto Z  │ Pedir: 20 │ [___] │
-│ ④ EST-C-1-1  │ Producto W  │ Pedir: 3  │ [___] │
-└─────────────────────────────────────────────────┘
-```
-
----
-
-### 5. Empaque (Packing)
-
-Proceso posterior al picking:
-
-```
-1. Operario revisa cantidades alistadas
-2. Registra cantidades empacadas (puede diferir si hay daños)
-3. Registra número de cajas por ítem
-4. Agrega observaciones de empaque
-5. Al finalizar: orden pasa a "Lista_Facturar"
-```
-
----
-
-### 6. Gestión de Ubicaciones
-
-Mapeo físico de la bodega:
-
-```
-Nomenclatura de ubicaciones:
-  EST-A-1-1  →  Estantería A, Fila 1, Nivel 1 (suelo)
-  EST-A-1-2  →  Estantería A, Fila 1, Nivel 2 (medio)
-  EST-B-3-3  →  Estantería B, Fila 3, Nivel 3 (alto)
-
-Funcionalidades:
-  - Asignar productos a ubicaciones
-  - Designar ubicación primaria vs. secundaria
-  - Mover productos entre ubicaciones
-  - Ver inventario completo de una ubicación
-  - Autocomplete para búsqueda rápida
-```
-
----
-
-### 7. Recepciones de Mercancía
-
-Proceso de entrada de inventario:
-
-```
-1. Crear recepción con número de documento y proveedor
-2. Agregar ítems recibidos: producto + cantidad + ubicación destino
-3. El sistema actualiza automáticamente el inventario en la ubicación
-4. Soporta foto de soporte (documento de entrega, remisión, etc.)
-```
-
----
-
-### 8. Reportes de Averías
-
-Sistema completo de gestión de daños:
-
-```
-Tipos de avería:
-  - Daño      (producto dañado físicamente)
-  - Faltante  (producto que debería estar pero no está)
-  - Rotura    (envase roto)
-  - Vencimiento (producto caducado)
-
-Estados:
-  Abierta → En_Revision → Cerrada
-
-Al cerrar:
-  - "Repuesta":   +stock (producto devuelto al inventario)
-  - "Descartada": -stock (descuento permanente de inventario)
-
-Evidencias: múltiples fotos por avería
-```
-
----
-
-### 9. Métricas de Desempeño
-
-KPIs individuales y de equipo:
-
-```
-Métricas por operario:
-  - Órdenes alistadas / empacadas (hoy, semana, mes)
-  - Tiempo promedio de alistamiento
-  - Tiempo promedio de empaque
-  - Unidades procesadas
-
-Vistas disponibles:
-  - Mi Desempeño     (todos los roles)
-  - Mi Historial     (todos los roles)
-  - Global           (Jefe_Bodega, Admin)
-  - Por Usuario      (Jefe_Bodega, Admin)
-  - Rankings         (Jefe_Bodega, Admin)
-```
-
----
-
-### 10. Facturación
-
-Módulo de cierre del ciclo de ventas:
-
-```
-Flujo:
-  1. Facturación recibe órdenes en estado "Lista_Facturar"
-  2. Verifica los detalles de picking y empaque
-  3. Genera factura con numeración consecutiva
-  4. Orden pasa a estado "Facturada"
-  5. Factura queda registrada con: número, fecha, totales, usuario
-```
-
----
-
-### 11. Transferencias entre Bodegas
-
-Para empresas con múltiples puntos de almacenamiento:
-
-```
-1. Seleccionar bodega origen y destino
-2. Seleccionar productos y cantidades
-3. Confirmar transferencia → ajuste automático de inventarios
-4. Posibilidad de cancelar mientras está en tránsito
-```
-
----
-
-## API REST — Referencia Completa
-
-### Base URL
-```
-Desarrollo:   http://localhost:3000
-Producción:   https://<tu-api>.azurewebsites.net
-```
-
-### Autenticación
-Todos los endpoints (excepto `/api/auth/login` y `/api/auth/register`) requieren:
-```
-Authorization: Bearer <jwt_token>
-```
-
-### Formato de Respuesta
-```json
-{
-  "success": true,
-  "message": "Descripción del resultado",
-  "data": { ... }
-}
-```
-
----
-
-#### Auth — `/api/auth`
-
-| Método | Ruta | Acceso | Descripción |
-|---|---|---|---|
-| `POST` | `/login` | Público | Iniciar sesión |
-| `POST` | `/register` | Público | Registrar usuario |
-| `GET` | `/profile` | Privado | Obtener perfil actual |
-| `PUT` | `/change-password` | Privado | Cambiar contraseña |
-
----
-
-#### Clientes — `/api/clientes`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/` | Todos | Listar clientes |
-| `GET` | `/:id` | Todos | Obtener cliente |
-| `POST` | `/` | Vendedor, Jefe_Bodega, Admin | Crear cliente |
-| `PUT` | `/:id` | Vendedor, Jefe_Bodega, Admin | Actualizar cliente |
-| `PATCH` | `/:id/toggle-active` | Jefe_Bodega, Admin | Activar/desactivar |
-| `DELETE` | `/:id` | Admin | Eliminar cliente |
-
----
-
-#### Productos — `/api/productos`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/` | Todos | Listar productos (con filtros) |
-| `GET` | `/categorias` | Todos | Obtener categorías |
-| `GET` | `/subcategorias` | Todos | Obtener subcategorías |
-| `GET` | `/marcas` | Todos | Obtener marcas |
-| `GET` | `/:id` | Todos | Detalle de producto |
-| `GET` | `/:id/ubicaciones` | Todos | Ubicaciones del producto |
-| `GET` | `/:id/ordenes` | Todos | Historial de órdenes |
-| `GET` | `/:id/disponibilidad` | Todos | Stock disponible |
-| `POST` | `/verificar-disponibilidad` | Todos | Verificar múltiples productos |
-| `POST` | `/` | Jefe_Bodega, Admin | Crear producto |
-| `PUT` | `/:id` | Jefe_Bodega, Admin | Actualizar producto |
-| `PATCH` | `/:id/stock` | Jefe_Bodega, Admin | Ajustar stock |
-| `PATCH` | `/:id/imagen` | Jefe_Bodega, Admin | Actualizar imagen |
-| `DELETE` | `/:id` | Admin | Eliminar producto |
-
----
-
-#### Órdenes — `/api/ordenes`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/` | Todos | Listar órdenes (con filtros) |
-| `GET` | `/pendientes` | Jefe_Bodega, Admin | Órdenes por aprobar |
-| `GET` | `/:id` | Todos | Detalle de orden |
-| `GET` | `/:id/picking-list` | Operario, Jefe_Bodega, Admin | Lista de picking optimizada |
-| `POST` | `/` | Vendedor, Jefe_Bodega, Admin | Crear orden |
-| `PATCH` | `/:id/estado` | Jefe_Bodega, Admin | Cambiar estado |
-| `PATCH` | `/:id/asignar` | Jefe_Bodega, Admin | Asignar operario |
-| `POST` | `/:id/iniciar-alistamiento` | Operario, Jefe_Bodega, Admin | Iniciar picking |
-| `PATCH` | `/:id/alistamiento` | Operario, Jefe_Bodega, Admin | Registrar cantidades |
-| `PATCH` | `/detalles/:id/cantidad-alistada` | Operario, Jefe_Bodega, Admin | Guardar cantidad por ítem |
-| `POST` | `/:id/finalizar-alistamiento` | Operario, Jefe_Bodega, Admin | Completar picking |
-| `POST` | `/:id/iniciar-empaque` | Operario, Jefe_Bodega, Admin | Iniciar empaque |
-| `PATCH` | `/:id/empaque` | Operario, Jefe_Bodega, Admin | Registrar empaque |
-| `PATCH` | `/detalles/:id/cantidad-empacada` | Operario, Jefe_Bodega, Admin | Guardar cantidad por ítem |
-| `POST` | `/:id/finalizar-empaque` | Operario, Jefe_Bodega, Admin | Completar empaque |
-| `POST` | `/:id/observaciones` | Todos | Agregar observación |
-| `POST` | `/:id/finalizar-revision` | Facturación, Jefe_Bodega, Admin | Marcar lista para facturar |
-| `DELETE` | `/:id` | Admin | Eliminar orden |
-
----
-
-#### Ubicaciones — `/api/ubicaciones`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/` | Todos | Listar ubicaciones |
-| `GET` | `/:id` | Todos | Detalle de ubicación |
-| `GET` | `/:id/inventario` | Todos | Inventario en ubicación |
-| `GET` | `/sugerencias-productos` | Todos | Autocomplete de productos |
-| `GET` | `/sugerencias-ubicaciones` | Todos | Autocomplete de ubicaciones |
-| `GET` | `/buscar-producto` | Todos | Buscar por producto |
-| `GET` | `/buscar-ubicacion` | Todos | Buscar por ubicación |
-| `POST` | `/` | Jefe_Bodega, Admin | Crear ubicación |
-| `PUT` | `/:id` | Jefe_Bodega, Admin | Actualizar ubicación |
-| `POST` | `/:id/asignar-producto` | Jefe_Bodega, Admin | Asignar producto |
-| `PATCH` | `/:id/cantidad` | Jefe_Bodega, Admin | Actualizar cantidad |
-| `POST` | `/mover-producto` | Jefe_Bodega, Admin | Mover entre ubicaciones |
-| `DELETE` | `/:id/productos/:pid` | Jefe_Bodega, Admin | Quitar producto |
-| `DELETE` | `/:id` | Admin | Eliminar ubicación |
-
----
-
-#### Recepciones — `/api/recepciones`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/` | Jefe_Bodega, Admin | Listar recepciones |
-| `GET` | `/:id` | Jefe_Bodega, Admin | Detalle con ítems |
-| `POST` | `/` | Jefe_Bodega, Admin | Crear recepción |
-| `DELETE` | `/:id` | Admin | Eliminar recepción |
-
----
-
-#### Averías — `/api/averias`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/` | Todos | Listar averías (con filtros) |
-| `GET` | `/stats` | Todos | Estadísticas de daños |
-| `GET` | `/:id` | Todos | Detalle con evidencias |
-| `GET` | `/:id/evidencias` | Todos | Todas las fotos |
-| `POST` | `/` | Todos | Reportar nueva avería |
-| `POST` | `/:id/evidencias` | Todos | Agregar foto |
-| `PATCH` | `/:id/estado` | Jefe_Bodega, Admin | Cambiar estado (ajusta inventario) |
-| `PUT` | `/:id` | Jefe_Bodega, Admin | Actualizar datos |
-| `DELETE` | `/:id/evidencias/:eid` | Jefe_Bodega, Admin | Quitar foto |
-| `DELETE` | `/:id` | Admin | Eliminar avería |
-
----
-
-#### Desempeño — `/api/desempeno`
-
-| Método | Ruta | Roles | Descripción |
-|---|---|---|---|
-| `GET` | `/mi-desempeno` | Todos | Mis KPIs personales |
-| `GET` | `/mi-historial` | Todos | Mi historial de actividad |
-| `GET` | `/global` | Jefe_Bodega, Admin | KPIs globales del equipo |
-| `GET` | `/por-usuario` | Jefe_Bodega, Admin | Comparativa por operario |
-| `GET` | `/usuario/:id` | Jefe_Bodega, Admin | KPIs de un usuario |
-| `GET` | `/usuario/:id/historial` | Jefe_Bodega, Admin | Historial de un usuario |
-| `GET` | `/rankings` | Jefe_Bodega, Admin | Ranking de rendimiento |
-| `GET` | `/operarios` | Jefe_Bodega, Admin | Lista de operarios |
-
----
-
-#### Otros módulos
-
-| Módulo | Base | Endpoints principales |
-|---|---|---|
-| Bodegas | `/api/bodegas` | CRUD + toggle-active + inventario |
-| Transferencias | `/api/transferencias` | Crear + cancelar + listar |
-| Inventario | `/api/inventario` | GET / (con info de reservas) |
-| Proveedores | `/api/proveedores` | CRUD completo |
-| Upload | `/api/upload` | POST /images, POST /image, DELETE /:filename |
-| Sistema | `/health`, `/api/config` | Health check y configuración |
-
----
-
-## Frontend — Páginas y Componentes
-
-### Sistema de Rutas (`App.jsx`)
-
-```jsx
-<Routes>
-  {/* Públicas */}
-  <PublicRoute path="/login" />
-  <PublicRoute path="/register" />
-
-  {/* Protegidas — requieren autenticación */}
-  <ProtectedRoute path="/dashboard" />
-  <ProtectedRoute path="/productos" />
-  <ProtectedRoute path="/ordenes" />
-  <ProtectedRoute path="/ordenes/aprobar"     roles={['Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/clientes"            roles={['Vendedor','Jefe_Bodega','Facturacion','Admin']} />
-  <ProtectedRoute path="/ubicaciones"         roles={['Jefe_Bodega','Operario','Facturacion','Admin']} />
-  <ProtectedRoute path="/actividades/alistamiento"      roles={['Operario','Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/actividades/alistamiento/:id"  roles={['Operario','Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/actividades/empaque"           roles={['Operario','Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/actividades/empaque/:id"       roles={['Operario','Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/recepciones"         roles={['Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/proveedores"         roles={['Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/averias" />
-  <ProtectedRoute path="/almacenes"           roles={['Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/desempeno"           roles={['Operario','Jefe_Bodega','Admin']} />
-  <ProtectedRoute path="/facturacion"         roles={['Facturacion','Jefe_Bodega','Admin']} />
-</Routes>
-```
-
-### Estado Global (`authStore.js` con Zustand)
-
-```javascript
-// Estado persistido en localStorage
-{
-  user: {
-    usuario_id, nombre, email, rol, activo
-  },
-  token: "eyJhbGci...",
-  isAuthenticated: true,
-
-  // Acciones
-  login(credentials) → actualiza estado + guarda en localStorage
-  logout()           → limpia todo
-  register(data)     → registra y autentica
-}
-```
-
-### Cliente HTTP (`api.js`)
-
-```javascript
-// Instancia Axios configurada
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-});
-
-// Interceptor: inyecta token automáticamente
-api.interceptors.request.use(config => {
-  const token = authStore.getState().token;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-// Interceptor: maneja expiración de sesión
-api.interceptors.response.use(null, error => {
-  if (error.response?.status === 401) {
-    authStore.getState().logout();
-    window.location.href = '/login';
-  }
-  throw error;
-});
-```
-
----
-
-## Optimización de Rutas de Picking
-
-Ubicado en `back/src/utils/picking-routes.js`, este módulo optimiza el recorrido del operario en la bodega:
-
-### Algoritmo
-
-```javascript
-async function getOptimizedPickingList(orden_id) {
-  // 1. Obtener todos los ítems de la orden con sus ubicaciones
-  const items = await query(`
-    SELECT od.*, p.*, u.*, iu.*
-    FROM orden_detalles od
-    JOIN productos p ON od.producto_id = p.producto_id
-    LEFT JOIN inventario_ubicaciones iu ON p.producto_id = iu.producto_id
-    LEFT JOIN ubicaciones u ON iu.ubicacion_id = u.ubicacion_id
-    WHERE od.orden_id = $1
-    ORDER BY
-      u.orden_ruta ASC NULLS LAST,    -- Ruta de recorrido optimizada
-      u.estanteria ASC NULLS LAST,    -- Sección A, B, C...
-      u.fila ASC NULLS LAST,          -- Fila 1, 2, 3...
-      u.nivel ASC NULLS LAST          -- Nivel 1 (suelo) primero
-  `, [orden_id]);
-
-  // 2. Calcular estadísticas
-  const stats = {
-    total_items: items.length,
-    total_unidades: Σ(cantidad_pedida),
-    ubicaciones_a_visitar: count(ubicaciones únicas),
-    items_sin_ubicacion: count(sin ubicación asignada)
-  };
-
-  // 3. Retornar lista ordenada + estadísticas
-  return { items, stats };
-}
-```
-
-### Ventajas
-
-- **Recorrido en serpentina**: El operario no retrocede — sigue el `orden_ruta` definido por el jefe de bodega
-- **Agrupa por pasillo**: Todos los ítems de un mismo pasillo se recogen juntos
-- **Nivel suelo primero**: Productos al nivel 1 antes de subir al nivel 2 o 3
-- **Identifica faltantes**: Productos sin ubicación asignada se agrupan al final
-- **Soporte multi-ubicación**: Si un producto está en varias ubicaciones, usa la primaria
-
----
-
-## Sistema de Inventario
-
-### Doble seguimiento de stock
-
-```
-productos.stock_actual     = Stock físico total en bodega
-productos.stock_reservado  = Stock comprometido en órdenes aprobadas
-stock_disponible           = stock_actual - stock_reservado
-```
-
-### Flujo de reservas (opcional)
-
-Controlado por variable de entorno `ENABLE_INVENTORY_RESERVATION`:
-
-```
-Orden creada:
-  → Sin cambio en stock
-
-Orden aprobada:
-  → stock_reservado += cantidad_pedida
-
-Picking completado:
-  → stock_actual    -= cantidad_alistada
-  → stock_reservado -= cantidad_pedida
-
-Orden rechazada:
-  → stock_reservado -= cantidad_pedida (libera reserva)
-```
-
-### Inventario por ubicación
-
-```sql
--- Cada producto puede estar en múltiples ubicaciones
-inventario_ubicaciones:
-  EST-A-1-1 │ Producto X │ 50 unidades │ ubicación primaria
-  EST-B-2-1 │ Producto X │ 20 unidades │ ubicación secundaria
-
--- La picking list usa primero la ubicación primaria
-```
-
----
-
-## Configuración y Despliegue
-
-### Requisitos del sistema
-
-- **Node.js**: >= 18.x
-- **PostgreSQL**: >= 14.x
-- **npm**: >= 9.x
+### 5. Credenciales de prueba
+
+| Rol | Email | Password |
+|-----|-------|----------|
+| Administrador | admin@wms.com | admin123 |
+| Vendedor | vendedor@wms.com | vendedor123 |
+| Jefe Bodega | jefe@wms.com | jefe123 |
+| Operario | operario1@wms.com | operario123 |
+| Facturacion | facturacion@wms.com | facturacion123 |
 
 ---
 
@@ -1067,319 +699,108 @@ inventario_ubicaciones:
 # Servidor
 PORT=3000
 NODE_ENV=development
+LOG_LEVEL=debug
 
-# Base de datos
+# PostgreSQL
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
-DB_PASSWORD=tu_contraseña_aqui
+DB_PASSWORD=tu_password
 DB_NAME=wms_db
 
 # JWT
-JWT_SECRET=clave_secreta_muy_segura_aqui
+JWT_SECRET=clave_secreta_minimo_32_caracteres
 JWT_EXPIRES_IN=24h
 JWT_REFRESH_EXPIRES_IN=7d
 
 # CORS
 CORS_ORIGIN=http://localhost:5173
 
-# Funcionalidades opcionales
+# Inventario
 ENABLE_INVENTORY_RESERVATION=true
+
+# Stellar / Harmony
+STELLAR_STUB=true                     # true = simula sin red real
+STELLAR_NETWORK=testnet               # testnet | mainnet
+STELLAR_ADMIN_SECRET=S...             # Clave privada admin
+FACTORY_CONTRACT_ID=C...              # Factory contract en Stellar
+ORG_CONTRACT_ID=C...                  # Organization contract
 ```
 
-### Frontend (`front/.env.local`)
+### Frontend (`front/.env`)
 
 ```env
 VITE_API_URL=http://localhost:3000/api
-```
-
-Para producción en Azure:
-```env
-VITE_API_URL=https://tu-api.azurewebsites.net/api
-```
-
----
-
-## Guía de Inicio Rápido
-
-### 1. Clonar y configurar
-
-```bash
-# Clonar el repositorio
-git clone <url-del-repo>
-cd wms
-```
-
-### 2. Configurar la base de datos
-
-```bash
-# Crear la base de datos
-psql -U postgres -c "CREATE DATABASE wms_db;"
-
-# Aplicar el esquema
-psql -U postgres -d wms_db -f back/database/schema.sql
-
-# (Opcional) Cargar datos de prueba
-psql -U postgres -d wms_db -f back/database/seed.sql
-```
-
-### 3. Configurar el backend
-
-```bash
-cd back
-
-# Instalar dependencias
-npm install
-
-# Crear archivo de variables de entorno
-cp .env.example .env
-# Editar .env con tus credenciales de PostgreSQL y JWT secret
-
-# Iniciar en modo desarrollo (auto-reload)
-npm run dev
-```
-
-El backend estará disponible en `http://localhost:3000`
-
-**Verificar que funciona:**
-```bash
-curl http://localhost:3000/health
-# → { "status": "ok", "timestamp": "...", "database": "connected" }
-```
-
-### 4. Configurar el frontend
-
-```bash
-cd front
-
-# Instalar dependencias
-npm install
-
-# Iniciar servidor de desarrollo
-npm run dev
-```
-
-El frontend estará disponible en `http://localhost:5173`
-
-### 5. Primer acceso
-
-Abrir `http://localhost:5173` en el navegador e iniciar sesión con:
-
-```
-Email:    admin@wms.com
-Password: admin123
-```
-
-### Comandos útiles
-
-```bash
-# Backend
-npm run dev    # Desarrollo con nodemon (auto-reload)
-npm start      # Producción
-
-# Frontend
-npm run dev    # Servidor de desarrollo Vite
-npm run build  # Build para producción (genera dist/)
-npm run lint   # Lint del código
-npm preview    # Vista previa del build de producción
 ```
 
 ---
 
 ## Despliegue en Azure
 
-### Opción A: Azure Static Web Apps + Azure App Service
-
-Esta es la configuración recomendada para producción:
-
-```
-┌─────────────────────────────────────────────────────┐
-│  Azure Static Web Apps                               │
-│  URL: https://<nombre>.azurestaticapps.net           │
-│  Contenido: dist/ (build de React)                   │
-│  Archivo: front/public/staticwebapp.config.json ✓   │
-└──────────────────────────┬──────────────────────────┘
-                           │ API calls
-                           ▼
-┌─────────────────────────────────────────────────────┐
-│  Azure App Service (Node.js)                         │
-│  URL: https://<nombre>.azurewebsites.net             │
-│  Contenido: back/ (servidor Express)                 │
-│  Base de datos: Azure Database for PostgreSQL        │
-└─────────────────────────────────────────────────────┘
-```
-
-### Configuración incluida para Azure
-
-**`front/public/staticwebapp.config.json`** — Para Azure Static Web Apps:
-```json
-{
-  "routes": [
-    {
-      "route": "/*",
-      "serve": "/index.html",
-      "statusCode": 200
-    }
-  ]
-}
-```
-
-**`front/public/web.config`** — Para Azure App Service (IIS):
-```xml
-<!-- Redirige todas las rutas a index.html para React Router -->
-<rewrite>
-  <rules>
-    <rule name="React Routes" stopProcessing="true">
-      <conditions>
-        <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
-      </conditions>
-      <action type="Rewrite" url="/index.html" />
-    </rule>
-  </rules>
-</rewrite>
-```
-
-Ambos archivos se copian automáticamente al directorio `dist/` cuando ejecutas `npm run build`.
-
-### Pasos de despliegue del frontend
+### Frontend → Azure Static Web Apps
 
 ```bash
 cd front
-
-# Configurar URL de la API de producción
-echo "VITE_API_URL=https://tu-api.azurewebsites.net/api" > .env.production
-
-# Generar build de producción
 npm run build
-
-# El directorio dist/ está listo para desplegarse en Azure
+# Deploy dist/ a Azure Static Web Apps
+# El archivo staticwebapp.config.json maneja el routing SPA
 ```
 
-### Variables de entorno en Azure App Service
-
-En el portal de Azure, configurar en **Configuración → Configuración de la aplicación**:
-
-```
-DB_HOST         = tu-servidor.postgres.database.azure.com
-DB_PORT         = 5432
-DB_USER         = adminuser@tu-servidor
-DB_PASSWORD     = contraseña_segura
-DB_NAME         = wms_db
-JWT_SECRET      = clave_jwt_muy_larga_y_aleatoria
-NODE_ENV        = production
-CORS_ORIGIN     = https://tu-frontend.azurestaticapps.net
-```
-
----
-
-## Seguridad
-
-### Medidas implementadas
-
-| Área | Medida |
-|---|---|
-| Contraseñas | Hash con bcrypt (factor 10) |
-| Sesiones | JWT con expiración de 24h |
-| Autorización | RBAC en cada endpoint sensible |
-| CORS | Orígenes permitidos configurables |
-| SQL Injection | Consultas parametrizadas con `pg` |
-| Uploads | Validación de tipo de archivo con Multer |
-| Errores | No se exponen detalles internos en producción |
-
-### Flujo JWT
-
-```
-1. Login: POST /api/auth/login
-   → Backend valida email/password
-   → Genera JWT firmado con JWT_SECRET
-   → Devuelve token (24h) + refreshToken (7d)
-
-2. Requests autenticadas:
-   → Frontend incluye: Authorization: Bearer <token>
-   → Backend verifica firma y expiración
-   → Extrae { usuario_id, rol } del payload
-   → Autoriza según rol
-
-3. Token expirado:
-   → Backend responde 401
-   → Frontend limpia localStorage
-   → Redirige a /login
-```
-
----
-
-## Manejo de Errores
-
-### Backend — Respuestas de error estándar
-
-```json
-// 400 Bad Request
-{ "success": false, "message": "Datos inválidos: el campo 'email' es requerido" }
-
-// 401 Unauthorized
-{ "success": false, "message": "Token inválido o expirado" }
-
-// 403 Forbidden
-{ "success": false, "message": "No tienes permisos para realizar esta acción" }
-
-// 404 Not Found
-{ "success": false, "message": "Recurso no encontrado" }
-
-// 500 Internal Server Error (producción: sin detalles)
-{ "success": false, "message": "Error interno del servidor" }
-```
-
-### Transacciones de base de datos
-
-Para operaciones que modifican múltiples tablas se usan transacciones explícitas:
-
-```javascript
-const client = await getClient();
-try {
-  await client.query('BEGIN');
-
-  // Operación 1: crear orden
-  await client.query('INSERT INTO ordenes_venta ...');
-
-  // Operación 2: crear detalles
-  await client.query('INSERT INTO orden_detalles ...');
-
-  // Operación 3: reservar stock
-  await client.query('UPDATE productos SET stock_reservado ...');
-
-  await client.query('COMMIT');
-} catch (error) {
-  await client.query('ROLLBACK');  // Revierte todo si falla algo
-  throw error;
-} finally {
-  client.release();
-}
-```
-
----
-
-## Endpoints de Sistema
+### Backend → Azure App Service (Linux)
 
 ```bash
-# Health check
-GET http://localhost:3000/health
-→ { "status": "ok", "database": "connected", "timestamp": "..." }
-
-# Información de la API
-GET http://localhost:3000/
-→ { "name": "WMS API", "version": "...", "endpoints": [...] }
-
-# Configuración del sistema
-GET http://localhost:3000/api/config
-→ { "features": { "inventory_reservation": true }, ... }
+cd back
+# CI/CD configurado en azure-pipelines.yml
+# Trigger: push a main/master
+# Deploy automatico a Azure Web App
 ```
+
+### Base de Datos → Azure Database for PostgreSQL
+
+- SSL requerido (ya configurado en `db.js`)
+- Timezone se configura automaticamente en cada conexion
+
+---
+
+## Datos de Prueba
+
+El proyecto incluye varios seeds para poblar la BD con datos de prueba:
+
+| Archivo | Contenido |
+|---------|-----------|
+| `seed.sql` | 6 usuarios, 5 clientes, 15 productos, 10 ubicaciones, inventario, 6 ordenes |
+| `seed_ordenes_demo.sql` | 3 ordenes en estado Aprobada (3, 5 y 6 productos) |
+| `seed_ordenes_flujo.sql` | 3 ordenes para practicar el flujo completo |
+
+### Ordenes de Flujo (para practicar)
+
+| Orden | Estado | Productos | Para practicar |
+|-------|--------|-----------|----------------|
+| ORD-FLUJO-001 | Pendiente_Aprobacion | 2 | Aprobar o rechazar |
+| ORD-FLUJO-002 | Aprobada | 3 | Iniciar alistamiento (picking) |
+| ORD-FLUJO-003 | Pendiente_Aprobacion | 3 (con 10% dto) | Flujo completo: aprobar → alistar → empacar → facturar |
+
+---
+
+## Verificacion On-Chain
+
+Todas las transacciones de Harmony son verificables en Stellar Testnet:
+
+| Recurso | Link |
+|---------|------|
+| Wallet Admin | [stellar.expert/account/GBEP4X...](https://stellar.expert/explorer/testnet/account/GBEP4XMMRPFAI7NNTOGAMOBF6ELKD5WYMRLONPFZV6Z2TNWIQLOKMRQ7) |
+| Blend Pool | [stellar.expert/contract/CCEBVD...](https://stellar.expert/explorer/testnet/contract/CCEBVDYM32YNYCVNRXQKDFFPISJJCV557CDZEIRBEE4NCV4KHPQ44HGF) |
+| Supply TX | [stellar.expert/tx/e095cc90...](https://stellar.expert/explorer/testnet/tx/e095cc90526a6f18f9e77ea69e4c601ba986743ae3ab85afb8beea6eed81369d) |
+| Withdraw TX | [stellar.expert/tx/9e21f142...](https://stellar.expert/explorer/testnet/tx/9e21f14213c3e58e3ce1a4cb9ead6384495bf30a68ec755f7bebd2cfcb79ce67) |
 
 ---
 
 ## Licencia
 
-Este proyecto fue desarrollado como solución privada de gestión de almacén.
+Proyecto academico / demostrativo. Desarrollado para la gestion de almacen con incentivos Web3 sobre Stellar.
 
 ---
 
-*Documentación generada para WMS v1.0 — Última actualización: Febrero 2026*
+<p align="center">
+  <b>Harmony WMS</b> — Gestion de almacen + incentivos transparentes on-chain
+</p>
