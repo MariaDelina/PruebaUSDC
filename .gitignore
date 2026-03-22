@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+back/node_modules/
+front/node_modules/
+
+# Environment files
+.env
+back/.env
+front/.env
+
+# Rust/Soroban build artifacts
+contracts/target/
+*.wasm
+
+# Temporary files
+tmpclaude-*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Uploads (user content)
+back/uploads/*
+!back/uploads/.gitkeep

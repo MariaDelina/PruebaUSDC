@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'C:\\\\Users\\\\mdtre\\\\OneDrive\\\\Documentos\\\\WMS Harmony con Harmony oculto\\(decattonica\\)\\\\Proy John nuevo \\(7\\)\\\\Proy John nuevo\\\\front\\\\src\\\\pages\\\\harmony' -type f -name *.jsx)",
+      "Bash(node -e \":*)",
+      "Bash(node scripts/test-distribucion.js)"
+    ]
+  }
+}
